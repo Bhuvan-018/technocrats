@@ -1,0 +1,55 @@
+{
+  "key": "banking",
+  "method": "permutation_sensitivity_weighted",
+  "generated_at": "2026-03-11T16:58:24",
+  "top_features": [
+    {
+      "feature": "Open",
+      "importance": 0.11893059028334803
+    },
+    {
+      "feature": "High",
+      "importance": 0.10699333505666361
+    },
+    {
+      "feature": "BB_Upper",
+      "importance": 0.09323558122429404
+    },
+    {
+      "feature": "Low",
+      "importance": 0.08063450210157938
+    },
+    {
+      "feature": "Signal_Line",
+      "importance": 0.0755588533019856
+    },
+    {
+      "feature": "MACD",
+      "importance": 0.05989747321502373
+    },
+    {
+      "feature": "SMA_20",
+      "importance": 0.05354311897500027
+    },
+    {
+      "feature": "RSI",
+      "importance": 0.05272668176336386
+    },
+    {
+      "feature": "SMA_50",
+      "importance": 0.04676144844350811
+    },
+    {
+      "feature": "Close",
+      "importance": 0.043912727819439494
+    }
+  ],
+  "core_indicators": {
+    "RSI": 0.05272668176336386,
+    "SMA20": 0.05354311897500027,
+    "ATR": 0.01723423437876271
+  },
+  "RSI": 0.05272668176336386,
+  "SMA20": 0.05354311897500027,
+  "ATR": 0.01723423437876271
+}

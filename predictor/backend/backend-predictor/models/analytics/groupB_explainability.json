@@ -1,0 +1,55 @@
+{
+  "group": "groupB",
+  "method": "permutation_sensitivity_weighted",
+  "generated_at": "2026-03-07T15:40:54",
+  "top_features": [
+    {
+      "feature": "High",
+      "importance": 0.1358390376693968
+    },
+    {
+      "feature": "Signal_Line",
+      "importance": 0.12817797338828102
+    },
+    {
+      "feature": "BB_Upper",
+      "importance": 0.12198343113095637
+    },
+    {
+      "feature": "SMA_50",
+      "importance": 0.10739106359745558
+    },
+    {
+      "feature": "MACD",
+      "importance": 0.08202595798233143
+    },
+    {
+      "feature": "Close",
+      "importance": 0.07915175800041102
+    },
+    {
+      "feature": "Low",
+      "importance": 0.06807375785868436
+    },
+    {
+      "feature": "RSI",
+      "importance": 0.05247698971120977
+    },
+    {
+      "feature": "SMA_20",
+      "importance": 0.049469029509681094
+    },
+    {
+      "feature": "ATR",
+      "importance": 0.040227493027404713
+    }
+  ],
+  "core_indicators": {
+    "RSI": 0.05247698971120977,
+    "SMA20": 0.049469029509681094,
+    "ATR": 0.040227493027404713
+  },
+  "RSI": 0.05247698971120977,
+  "SMA20": 0.049469029509681094,
+  "ATR": 0.040227493027404713
+}

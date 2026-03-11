@@ -1,0 +1,36 @@
+{
+  "key": "banking",
+  "window_days": 30,
+  "companies_used": [
+    "AXISBANK",
+    "BAJAJFINSV",
+    "BAJFINANCE",
+    "BANKBARODA",
+    "HDFCBANK",
+    "ICICIBANK",
+    "IDFCFIRSTB",
+    "INDUSINDBK",
+    "KOTAKBANK",
+    "LICI",
+    "PNB",
+    "SBIN"
+  ],
+  "sample_count": 9276,
+  "directional_accuracy": 0.5117148196061521,
+  "mean_absolute_error": 9.17881220244155,
+  "horizons": {
+    "10m": {
+      "directional_accuracy": 0.49655023717119445,
+      "mean_absolute_error": 9.202722936007628
+    },
+    "30m": {
+      "directional_accuracy": 0.5135834411384217,
+      "mean_absolute_error": 9.159131488906972
+    },
+    "1h": {
+      "directional_accuracy": 0.52501078050884,
+      "mean_absolute_error": 9.174582182410052
+    }
+  },
+  "generated_at": "2026-03-11T16:58:24"
+}

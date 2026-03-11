@@ -1,0 +1,57 @@
+{
+  "group": "groupB",
+  "lookback": 100,
+  "interval": "5m",
+  "period": "59d",
+  "test_split": 0.2,
+  "companies_requested": [
+    "RELIANCE",
+    "LT",
+    "NTPC",
+    "ADANIENT",
+    "ADANIGREEN",
+    "HINDUNILVR",
+    "ITC",
+    "MARUTI",
+    "TATAMOTORS",
+    "SUNPHARMA"
+  ],
+  "companies_used": [
+    "ADANIENT",
+    "ADANIGREEN",
+    "HINDUNILVR",
+    "ITC",
+    "LT",
+    "MARUTI",
+    "NTPC",
+    "RELIANCE",
+    "SUNPHARMA"
+  ],
+  "samples_by_ticker": {
+    "RELIANCE": 1958,
+    "LT": 1958,
+    "NTPC": 1957,
+    "ADANIENT": 1958,
+    "ADANIGREEN": 1958,
+    "HINDUNILVR": 1958,
+    "ITC": 1958,
+    "MARUTI": 1957,
+    "SUNPHARMA": 1959
+  },
+  "train_samples": 14093,
+  "test_samples": 3528,
+  "model_file": "transformer_groupB_multi.keras",
+  "metrics": {
+    "loss": 0.058595191687345505,
+    "forecast_10m_loss": 0.018864938989281654,
+    "forecast_30m_loss": 0.018977908417582512,
+    "forecast_1h_loss": 0.020752346143126488,
+    "forecast_10m_mae": 0.0347515270113945,
+    "forecast_10m_mse": 0.002978355623781681,
+    "forecast_30m_mae": 0.034833118319511414,
+    "forecast_30m_mse": 0.0031226978171616793,
+    "forecast_1h_mae": 0.03776080161333084,
+    "forecast_1h_mse": 0.0037438757717609406
+  },
+  "best_val_loss": 0.0585951991379261
+}

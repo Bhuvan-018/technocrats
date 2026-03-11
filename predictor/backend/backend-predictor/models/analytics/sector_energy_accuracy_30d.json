@@ -1,0 +1,35 @@
+{
+  "key": "energy",
+  "window_days": 30,
+  "companies_used": [
+    "ADANIENSOL",
+    "ADANIGREEN",
+    "BPCL",
+    "GAIL",
+    "IOC",
+    "JSWENERGY",
+    "NHPC",
+    "NTPC",
+    "POWERGRID",
+    "SJVN",
+    "TATAPOWER"
+  ],
+  "sample_count": 8503,
+  "directional_accuracy": 0.4904543494452938,
+  "mean_absolute_error": 6.970929247165889,
+  "horizons": {
+    "10m": {
+      "directional_accuracy": 0.48594613665765024,
+      "mean_absolute_error": 6.294873245348725
+    },
+    "30m": {
+      "directional_accuracy": 0.49217923085969656,
+      "mean_absolute_error": 7.103919767567964
+    },
+    "1h": {
+      "directional_accuracy": 0.49323768081853464,
+      "mean_absolute_error": 7.513994728580979
+    }
+  },
+  "generated_at": "2026-03-11T17:11:07"
+}

@@ -1,0 +1,62 @@
+{
+  "sector": "energy",
+  "lookback": 100,
+  "interval": "5m",
+  "period": "59d",
+  "test_split": 0.2,
+  "companies_requested": [
+    "NTPC",
+    "TATAPOWER",
+    "ADANIGREEN",
+    "ADANIENSOL",
+    "POWERGRID",
+    "JSWENERGY",
+    "NHPC",
+    "SJVN",
+    "GAIL",
+    "IOC",
+    "BPCL"
+  ],
+  "companies_used": [
+    "ADANIENSOL",
+    "ADANIGREEN",
+    "BPCL",
+    "GAIL",
+    "IOC",
+    "JSWENERGY",
+    "NHPC",
+    "NTPC",
+    "POWERGRID",
+    "SJVN",
+    "TATAPOWER"
+  ],
+  "samples_by_ticker": {
+    "NTPC": 1994,
+    "TATAPOWER": 1956,
+    "ADANIGREEN": 1995,
+    "ADANIENSOL": 1959,
+    "POWERGRID": 1957,
+    "JSWENERGY": 1958,
+    "NHPC": 1957,
+    "SJVN": 1958,
+    "GAIL": 1958,
+    "IOC": 1957,
+    "BPCL": 1959
+  },
+  "train_samples": 17282,
+  "test_samples": 4326,
+  "model_file": "D:\\youngtechnocrats\\models\\sector_models\\transformer_energy_multi.keras",
+  "metrics": {
+    "loss": 0.06544013321399689,
+    "forecast_10m_loss": 0.02004193887114525,
+    "forecast_30m_loss": 0.02147086150944233,
+    "forecast_1h_loss": 0.023927323520183563,
+    "forecast_10m_mae": 0.036853447556495667,
+    "forecast_10m_mse": 0.003230420406907797,
+    "forecast_30m_mae": 0.03920387476682663,
+    "forecast_30m_mse": 0.003737849649041891,
+    "forecast_1h_mae": 0.04312123358249664,
+    "forecast_1h_mse": 0.004733407404273748
+  },
+  "best_val_loss": 0.06544012576341629
+}

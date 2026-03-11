@@ -1,0 +1,55 @@
+{
+  "key": "it",
+  "method": "permutation_sensitivity_weighted",
+  "generated_at": "2026-03-11T17:21:44",
+  "top_features": [
+    {
+      "feature": "SMA_20",
+      "importance": 0.12258328598838276
+    },
+    {
+      "feature": "Open",
+      "importance": 0.11358238993503576
+    },
+    {
+      "feature": "Low",
+      "importance": 0.08039534139730871
+    },
+    {
+      "feature": "BB_Lower",
+      "importance": 0.07367149995232997
+    },
+    {
+      "feature": "MACD",
+      "importance": 0.07188476142360072
+    },
+    {
+      "feature": "High",
+      "importance": 0.05327366980662823
+    },
+    {
+      "feature": "Close",
+      "importance": 0.048876575564453136
+    },
+    {
+      "feature": "Volatility_10",
+      "importance": 0.04610679843249123
+    },
+    {
+      "feature": "SMA_50",
+      "importance": 0.04603930870782862
+    },
+    {
+      "feature": "ATR",
+      "importance": 0.04601224002318105
+    }
+  ],
+  "core_indicators": {
+    "RSI": 0.022975338884037945,
+    "SMA20": 0.12258328598838276,
+    "ATR": 0.04601224002318105
+  },
+  "RSI": 0.022975338884037945,
+  "SMA20": 0.12258328598838276,
+  "ATR": 0.04601224002318105
+}

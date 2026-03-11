@@ -1,0 +1,59 @@
+{
+  "group": "groupA",
+  "lookback": 100,
+  "interval": "5m",
+  "period": "59d",
+  "test_split": 0.2,
+  "companies_requested": [
+    "HDFCBANK",
+    "ICICIBANK",
+    "SBIN",
+    "AXISBANK",
+    "KOTAKBANK",
+    "BAJFINANCE",
+    "TCS",
+    "INFY",
+    "BHARTIARTL",
+    "LICI"
+  ],
+  "companies_used": [
+    "AXISBANK",
+    "BAJFINANCE",
+    "BHARTIARTL",
+    "HDFCBANK",
+    "ICICIBANK",
+    "INFY",
+    "KOTAKBANK",
+    "LICI",
+    "SBIN",
+    "TCS"
+  ],
+  "samples_by_ticker": {
+    "HDFCBANK": 1958,
+    "ICICIBANK": 1957,
+    "SBIN": 1958,
+    "AXISBANK": 1956,
+    "KOTAKBANK": 1957,
+    "BAJFINANCE": 1959,
+    "TCS": 1958,
+    "INFY": 1955,
+    "BHARTIARTL": 1958,
+    "LICI": 1958
+  },
+  "train_samples": 15655,
+  "test_samples": 3919,
+  "model_file": "transformer_groupA_multi.keras",
+  "metrics": {
+    "loss": 0.07254806905984879,
+    "forecast_10m_loss": 0.021967990323901176,
+    "forecast_30m_loss": 0.023428423330187798,
+    "forecast_1h_loss": 0.027151675894856453,
+    "forecast_10m_mae": 0.04059801623225212,
+    "forecast_10m_mse": 0.0033379446249455214,
+    "forecast_30m_mae": 0.04294693097472191,
+    "forecast_30m_mse": 0.003909891005605459,
+    "forecast_1h_mae": 0.048947229981422424,
+    "forecast_1h_mse": 0.005356126464903355
+  },
+  "best_val_loss": 0.07254806905984879
+}
