@@ -14,8 +14,8 @@ class RapidAPIConfig:
 
 
 def load_config() -> RapidAPIConfig:
-    host = os.environ.get("RAPIDAPI_HOST", "yahoo-finance160.p.rapidapi.com").strip()
-    key = os.environ.get("RAPIDAPI_KEY", "").strip()
+    host = os.environ.get("RAPIDAPI_HOST", "chatgpt-42.p.rapidapi.com").strip()
+    key = os.environ.get("RAPIDAPI_KEY", "909e2e0691msh699f5f24498ee36p127bd0jsne163c06864f9").strip()
     return RapidAPIConfig(host=host, key=key)
 
 

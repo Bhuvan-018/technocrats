@@ -53,7 +53,19 @@ class APIServerHandler(BaseHTTPRequestHandler):
         path, query = self._normalize_path()
         try:
             if path == "/health":
-                self._send_json({"status": "ok"})
+                self._send_json({"status": "ok", "build": "predictor-backend-2026-03-12"})
+                return
+            if path == "/debug/versions":
+                try:
+                    import keras
+                    import tensorflow as tf
+                    payload = {
+                        "keras": getattr(keras, "__version__", "unknown"),
+                        "tensorflow": getattr(tf, "__version__", "unknown"),
+                    }
+                except Exception as e:
+                    payload = {"error": f"version_check_failed: {e}"}
+                self._send_json(payload)
                 return
             if path == "/market-status":
                 self._send_json(market_status_payload())

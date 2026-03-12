@@ -117,8 +117,10 @@ def oil_price() -> dict:
             "timestamp": datetime.now(IST).isoformat(),
             "available": False,
         }
+    # Use Ticker.history for a single instrument; this is more stable than a generic download
+    # path and avoids ambiguous multi-index parsing that can inflate values incorrectly.
     try:
-        df = yf.download("CL=F", period="2d", interval="1d", progress=False, auto_adjust=True)
+        df = yf.Ticker("CL=F").history(period="5d", interval="1d", auto_adjust=True)
     except Exception:
         df = pd.DataFrame()
     if df is None or df.empty:
@@ -132,12 +134,8 @@ def oil_price() -> dict:
         }
 
     if isinstance(df.columns, pd.MultiIndex):
-        try:
-            df = df["CL=F"]
-        except Exception:
-            df = df
-    df = _normalize_multi(df)
-    if df.empty:
+        df.columns = df.columns.get_level_values(0)
+    if "Close" not in df.columns:
         return {
             "ticker": "CL=F",
             "price": 0.0,
@@ -147,18 +145,34 @@ def oil_price() -> dict:
             "available": False,
         }
 
-    last = df.iloc[-1]
-    prev = df.iloc[-2] if len(df) > 1 else last
+    close_series = pd.to_numeric(df["Close"], errors="coerce").dropna()
+    if close_series.empty:
+        return {
+            "ticker": "CL=F",
+            "price": 0.0,
+            "change": 0.0,
+            "changePercent": 0.0,
+            "timestamp": datetime.now(IST).isoformat(),
+            "available": False,
+        }
 
-    def _scalar(val):
-        if isinstance(val, pd.Series):
-            return float(val.iloc[0])
-        return float(val)
-
-    price = _scalar(last["Close"])
-    prev_close = _scalar(prev["Close"])
+    price = float(close_series.iloc[-1])
+    prev_close = float(close_series.iloc[-2]) if len(close_series) > 1 else price
     change = float(price - prev_close)
     change_percent = (change / prev_close) * 100 if prev_close else 0.0
+
+    # Guard against malformed upstream parsing (e.g., index-like or volume-like numbers).
+    if price > 5000:
+        return {
+            "ticker": "CL=F",
+            "price": 0.0,
+            "change": 0.0,
+            "changePercent": 0.0,
+            "timestamp": datetime.now(IST).isoformat(),
+            "available": False,
+            "note": "unexpected crude quote value returned by upstream provider",
+        }
+
     payload = {
         "ticker": "CL=F",
         "price": price,

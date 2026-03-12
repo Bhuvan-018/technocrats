@@ -1,0 +1,33 @@
+{
+  "group": "groupB",
+  "window_days": 30,
+  "companies_used": [
+    "ADANIENT",
+    "ADANIGREEN",
+    "HINDUNILVR",
+    "ITC",
+    "LT",
+    "MARUTI",
+    "NTPC",
+    "RELIANCE",
+    "SUNPHARMA"
+  ],
+  "sample_count": 6948,
+  "directional_accuracy": 0.49534638265208214,
+  "mean_absolute_error": 40.916277978956025,
+  "horizons": {
+    "10m": {
+      "directional_accuracy": 0.4976971790443293,
+      "mean_absolute_error": 39.96059510840996
+    },
+    "30m": {
+      "directional_accuracy": 0.49366724237190557,
+      "mean_absolute_error": 40.361832767501944
+    },
+    "1h": {
+      "directional_accuracy": 0.4946747265400115,
+      "mean_absolute_error": 42.42640606095617
+    }
+  },
+  "generated_at": "2026-03-07T15:40:54"
+}

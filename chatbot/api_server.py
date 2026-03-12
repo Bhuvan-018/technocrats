@@ -57,92 +57,45 @@ class StockyHandler(BaseHTTPRequestHandler):
         config = load_config()
 
         if path == "/chat":
-            symbol = str(body.get("stock") or body.get("symbol") or "AAPL").upper()
-            messages = body.get("messages") or []
-            question = ""
-            if messages and isinstance(messages, list):
-                question = str(messages[-1].get("content") or "").strip()
+            try:
+                messages = body.get("messages")
+                if not isinstance(messages, list) or not messages:
+                    question = str(body.get("question") or body.get("prompt") or "hello").strip()
+                    messages = [{"role": "user", "content": question or "hello"}]
 
-            quote_payload, _ = request_json(
-                config,
-                "/market/v2/get-quotes",
-                method="GET",
-                params={"symbols": symbol, "region": "US"},
-            )
-            rec_payload, _ = request_json(
-                config,
-                "/stock/v2/get-recommendations",
-                method="GET",
-                params={"symbol": symbol},
-            )
-            profile_payload, _ = request_json(
-                config,
-                "/stock/v3/get-profile",
-                method="GET",
-                params={"symbol": symbol, "region": "US"},
-            )
-            insights_payload, _ = request_json(
-                config,
-                "/stock/v2/get-insights",
-                method="GET",
-                params={"symbol": symbol},
-            )
+                payload, status = request_json(
+                    config,
+                    "/conversationgpt4-2",
+                    method="POST",
+                    payload={
+                        "messages": messages,
+                        "system_prompt": str(body.get("system_prompt") or ""),
+                        "temperature": float(body.get("temperature") or 0.9),
+                        "top_k": int(body.get("top_k") or 5),
+                        "top_p": float(body.get("top_p") or 0.9),
+                        "max_tokens": int(body.get("max_tokens") or 256),
+                        "web_access": bool(body.get("web_access") if body.get("web_access") is not None else False),
+                    },
+                    timeout=90,
+                )
 
-            summary_parts = []
-            if question:
-                summary_parts.append(f"Question: {question}")
+                answer = (
+                    payload.get("result")
+                    or payload.get("answer")
+                    or payload.get("response")
+                    or payload.get("message")
+                    or payload.get("content")
+                )
 
-            quote_result = (
-                quote_payload.get("quoteResponse", {})
-                .get("result", [])
-            )
-            if quote_result:
-                first = quote_result[0]
-                name = first.get("shortName") or first.get("longName")
-                price = first.get("regularMarketPrice")
-                change = first.get("regularMarketChange")
-                change_pct = first.get("regularMarketChangePercent")
-                if name:
-                    summary_parts.append(f"Name: {name}.")
-                if price is not None:
-                    change_str = ""
-                    if change is not None and change_pct is not None:
-                        sign = "+" if change >= 0 else ""
-                        change_str = f" ({sign}{change:.2f}, {sign}{change_pct:.2f}%)"
-                    summary_parts.append(f"Price: {price:.2f}{change_str}.")
+                if isinstance(answer, dict):
+                    answer = answer.get("content") or answer.get("text") or json.dumps(answer)
 
-            recs = (
-                rec_payload.get("finance", {})
-                .get("result", [{}])[0]
-                .get("recommendedSymbols", [])
-            )
-            if recs:
-                top = ", ".join([r.get("symbol", "") for r in recs[:5] if r.get("symbol")])
-                if top:
-                    summary_parts.append(f"Related tickers: {top}.")
+                if not answer:
+                    answer = "No response from RapidAPI model."
 
-            company_name = (
-                profile_payload.get("quoteSummary", {})
-                .get("result", [{}])[0]
-                .get("price", {})
-                .get("longName")
-            )
-            if company_name:
-                summary_parts.append(f"Company: {company_name}.")
-
-            insight = (
-                insights_payload.get("finance", {})
-                .get("result", {})
-                .get("instrumentInfo", {})
-                .get("summary")
-            )
-            if insight:
-                summary_parts.append(f"Insight: {insight}")
-
-            if len(summary_parts) == 1 and question:
-                summary_parts.append("No additional insights available right now.")
-            answer = " ".join(summary_parts) if summary_parts else "No insights available right now."
-            self._send_json({"answer": answer, "symbol": symbol})
+                self._send_json({"answer": str(answer), "raw": payload}, status)
+            except Exception as exc:
+                self._send_json({"error": f"chat request failed: {exc}"}, 500)
             return
 
         if path == "/stock/recommendations":

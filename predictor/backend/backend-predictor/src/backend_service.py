@@ -9,6 +9,139 @@ import pandas as pd
 import yfinance as yf
 from keras.models import load_model
 
+
+def _ensure_keras_compat() -> None:
+    """
+    Provide minimal module shims when loading models saved by newer Keras
+    in environments that only expose legacy module paths (tf.keras / keras.engine).
+    """
+    import sys
+    import types
+
+    if "keras.src.engine.functional" in sys.modules:
+        return
+
+    functional_cls = None
+    tf_op_layer_mod = None
+
+    try:
+        from keras.engine.functional import Functional as functional_cls  # type: ignore
+    except Exception:
+        try:
+            from tensorflow.keras.engine.functional import Functional as functional_cls  # type: ignore
+        except Exception:
+            try:
+                from tensorflow.python.keras.engine.functional import Functional as functional_cls  # type: ignore
+            except Exception:
+                functional_cls = None
+
+    try:
+        import keras.layers.core.tf_op_layer as tf_op_layer_mod  # type: ignore
+    except Exception:
+        try:
+            import tensorflow.keras.layers.core.tf_op_layer as tf_op_layer_mod  # type: ignore
+        except Exception:
+            try:
+                import tensorflow.python.keras.layers.core.tf_op_layer as tf_op_layer_mod  # type: ignore
+            except Exception:
+                tf_op_layer_mod = None
+
+    if functional_cls is None:
+        try:
+            from keras.src.models.functional import Functional as functional_cls  # type: ignore
+        except Exception:
+            functional_cls = None
+
+    if functional_cls is None:
+        return
+
+    def _pkg(name: str):
+        mod = types.ModuleType(name)
+        mod.__path__ = []  # mark as package for importlib
+        return mod
+
+    try:
+        import keras.src as keras_src  # type: ignore
+        sys.modules.setdefault("keras.src", keras_src)
+    except Exception:
+        sys.modules.setdefault("keras.src", _pkg("keras.src"))
+
+    sys.modules.setdefault("keras.src.engine", _pkg("keras.src.engine"))
+
+    functional_module = types.ModuleType("keras.src.engine.functional")
+    functional_module.Functional = functional_cls
+    sys.modules.setdefault("keras.src.engine.functional", functional_module)
+    # Link parent package attributes so importlib can resolve submodules.
+    try:
+        sys.modules["keras.src"].engine = sys.modules["keras.src.engine"]
+        sys.modules["keras.src.engine"].functional = sys.modules["keras.src.engine.functional"]
+    except Exception:
+        pass
+
+    if tf_op_layer_mod is not None:
+        try:
+            import keras.src.layers as keras_src_layers  # type: ignore
+            sys.modules.setdefault("keras.src.layers", keras_src_layers)
+        except Exception:
+            sys.modules.setdefault("keras.src.layers", _pkg("keras.src.layers"))
+        sys.modules.setdefault("keras.src.layers.core", _pkg("keras.src.layers.core"))
+        sys.modules.setdefault("keras.src.layers.core.tf_op_layer", tf_op_layer_mod)
+        try:
+            sys.modules["keras.src"].layers = sys.modules["keras.src.layers"]
+            sys.modules["keras.src.layers"].core = sys.modules["keras.src.layers.core"]
+            sys.modules["keras.src.layers.core"].tf_op_layer = sys.modules["keras.src.layers.core.tf_op_layer"]
+        except Exception:
+            pass
+    else:
+        try:
+            import keras
+            import tensorflow as tf
+
+            class TFOpLambda(keras.layers.Layer):
+                def __init__(self, function=None, **kwargs):
+                    super().__init__(**kwargs)
+                    self.function = function or "__operators__.add"
+
+                def call(self, inputs, **kwargs):
+                    y = kwargs.get("y", None)
+                    if isinstance(inputs, (list, tuple)):
+                        x = inputs[0]
+                        if y is None and len(inputs) > 1:
+                            y = inputs[1]
+                    else:
+                        x = inputs
+                    if y is None:
+                        return x
+                    if self.function in ("__operators__.add", "add"):
+                        return x + y
+                    return x + y
+
+                def get_config(self):
+                    config = super().get_config()
+                    config.update({"function": self.function})
+                    return config
+
+            tf_op_layer_mod = types.ModuleType("keras.src.layers.core.tf_op_layer")
+            tf_op_layer_mod.TFOpLambda = TFOpLambda
+            try:
+                import keras.src.layers as keras_src_layers  # type: ignore
+                sys.modules.setdefault("keras.src.layers", keras_src_layers)
+            except Exception:
+                sys.modules.setdefault("keras.src.layers", _pkg("keras.src.layers"))
+            sys.modules.setdefault("keras.src.layers.core", _pkg("keras.src.layers.core"))
+            sys.modules.setdefault("keras.src.layers.core.tf_op_layer", tf_op_layer_mod)
+            try:
+                sys.modules["keras.src"].layers = sys.modules["keras.src.layers"]
+                sys.modules["keras.src.layers"].core = sys.modules["keras.src.layers.core"]
+                sys.modules["keras.src.layers.core"].tf_op_layer = sys.modules["keras.src.layers.core.tf_op_layer"]
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+
+_ensure_keras_compat()
+
 from src.config import GROUP_LOOKBACK_WINDOW, MODELS_DIR, SECTOR_MODELS_DIR
 from src.data_loader import get_ticker_symbol
 from src.data_multi_horizon import resample_data
@@ -362,6 +495,7 @@ def _model_and_scalers_for_ticker(ticker: str):
 
     sector_key = find_sector_for_ticker(t)
     if sector_key:
+        _ensure_keras_compat()
         model_path = os.path.join(SECTOR_MODELS_DIR, get_sector_model_filename(sector_key))
         if not os.path.exists(model_path):
             raise BackendServiceError(f"Sector model not found for {t} at {model_path}")
@@ -381,6 +515,7 @@ def _model_and_scalers_for_ticker(ticker: str):
 
     group_key = find_group_for_ticker(t)
     if group_key:
+        _ensure_keras_compat()
         model_name = get_group_model_filename(group_key)
         model_candidates = [
             os.path.join(MODELS_DIR, "group_models", model_name),

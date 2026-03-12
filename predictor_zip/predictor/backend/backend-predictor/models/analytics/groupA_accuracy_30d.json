@@ -1,0 +1,34 @@
+{
+  "group": "groupA",
+  "window_days": 30,
+  "companies_used": [
+    "AXISBANK",
+    "BAJFINANCE",
+    "BHARTIARTL",
+    "HDFCBANK",
+    "ICICIBANK",
+    "INFY",
+    "KOTAKBANK",
+    "LICI",
+    "SBIN",
+    "TCS"
+  ],
+  "sample_count": 7721,
+  "directional_accuracy": 0.4900056123990848,
+  "mean_absolute_error": 17.338620202362147,
+  "horizons": {
+    "10m": {
+      "directional_accuracy": 0.48737210205931875,
+      "mean_absolute_error": 16.92658583343747
+    },
+    "30m": {
+      "directional_accuracy": 0.49203471052972414,
+      "mean_absolute_error": 17.297736760912557
+    },
+    "1h": {
+      "directional_accuracy": 0.49061002460821135,
+      "mean_absolute_error": 17.791538012736417
+    }
+  },
+  "generated_at": "2026-03-07T15:38:55"
+}

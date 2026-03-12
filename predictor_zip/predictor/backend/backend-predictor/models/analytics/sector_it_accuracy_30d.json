@@ -1,0 +1,36 @@
+{
+  "key": "it",
+  "window_days": 30,
+  "companies_used": [
+    "BSOFT",
+    "COFORGE",
+    "CYIENT",
+    "HCLTECH",
+    "INFY",
+    "LTIM",
+    "MPHASIS",
+    "OFSS",
+    "PERSISTENT",
+    "TCS",
+    "TECHM",
+    "WIPRO"
+  ],
+  "sample_count": 9268,
+  "directional_accuracy": 0.4747878003165012,
+  "mean_absolute_error": 52.12007739742511,
+  "horizons": {
+    "10m": {
+      "directional_accuracy": 0.470112214069918,
+      "mean_absolute_error": 54.278578142899605
+    },
+    "30m": {
+      "directional_accuracy": 0.482304704359085,
+      "mean_absolute_error": 50.57877806892774
+    },
+    "1h": {
+      "directional_accuracy": 0.47194648252050064,
+      "mean_absolute_error": 51.50287598044799
+    }
+  },
+  "generated_at": "2026-03-08T19:18:11"
+}

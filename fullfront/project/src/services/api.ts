@@ -1,6 +1,25 @@
 const BROKERAGE_API = import.meta.env.VITE_BROKERAGE_API || 'http://127.0.0.1:9000';
 const PREDICTOR_API = import.meta.env.VITE_PREDICTOR_API || 'http://127.0.0.1:8000';
 
+export type UserSettingsPrefs = {
+  notifications: {
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+  };
+  privacy: {
+    analytics: boolean;
+    marketing: boolean;
+  };
+  security: {
+    twoFactorEnabled: boolean;
+  };
+  subscription: {
+    plan: string;
+    billing: string;
+  };
+};
+
 export async function brokerageFetch(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem('access_token');
 
@@ -212,6 +231,60 @@ export const subscriptionAPI = {
       method: 'POST',
       body: JSON.stringify({ tier: plan }),
     }),
+};
+
+export const settingsAPI = {
+  getProfile: async () => {
+    const raw = await brokerageFetch('/api/user/profile');
+    return raw?.profile || raw;
+  },
+
+  getSubscription: async () => {
+    const raw = await brokerageFetch('/api/user/subscription');
+    return {
+      tier: String(raw?.subscription_tier || raw?.tier || 'free'),
+    };
+  },
+
+  savePreferences: async (prefs: UserSettingsPrefs) => {
+    localStorage.setItem('user_settings', JSON.stringify(prefs));
+    return prefs;
+  },
+
+  loadPreferences: (): UserSettingsPrefs => {
+    const fallback: UserSettingsPrefs = {
+      notifications: { email: true, sms: false, push: true },
+      privacy: { analytics: false, marketing: false },
+      security: { twoFactorEnabled: false },
+      subscription: { plan: 'pro', billing: 'monthly' },
+    };
+
+    try {
+      const saved = localStorage.getItem('user_settings');
+      if (!saved) return fallback;
+      const parsed = JSON.parse(saved);
+      return {
+        notifications: {
+          email: Boolean(parsed?.notifications?.email),
+          sms: Boolean(parsed?.notifications?.sms),
+          push: Boolean(parsed?.notifications?.push),
+        },
+        privacy: {
+          analytics: Boolean(parsed?.privacy?.analytics),
+          marketing: Boolean(parsed?.privacy?.marketing),
+        },
+        security: {
+          twoFactorEnabled: Boolean(parsed?.security?.twoFactorEnabled),
+        },
+        subscription: {
+          plan: String(parsed?.subscription?.plan || fallback.subscription.plan),
+          billing: String(parsed?.subscription?.billing || fallback.subscription.billing),
+        },
+      };
+    } catch {
+      return fallback;
+    }
+  },
 };
 
 export const predictorAPI = {

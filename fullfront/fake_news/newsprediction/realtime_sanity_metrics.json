@@ -1,0 +1,81 @@
+{
+  "real_samples": 12,
+  "fake_samples": 5,
+  "overall_accuracy": 0.23529411764705882,
+  "real_recall": 0.0,
+  "fake_recall": 0.8,
+  "details": {
+    "real": [
+      {
+        "text": "'Even under missiles we carry on living' - how young Iranians are coping with war",
+        "predicted": "fake"
+      },
+      {
+        "text": "Starmer was warned of 'reputational risk' over Mandelson's links with Epstein, files show",
+        "predicted": "fake"
+      },
+      {
+        "text": "Chris Mason: Some nuggets but no huge revelations in first batch of Mandelson files",
+        "predicted": "fake"
+      },
+      {
+        "text": "Hundreds of GPs tell BBC they have never refused a sick note over mental health concerns",
+        "predicted": "fake"
+      },
+      {
+        "text": "Epstein used modelling agent to recruit girls, Brazilian women tell BBC",
+        "predicted": "fake"
+      },
+      {
+        "text": "Inquiry into student loans launched by MPs",
+        "predicted": "fake"
+      },
+      {
+        "text": "Wind warnings issued as colder weather and mountain snow head south",
+        "predicted": "fake"
+      },
+      {
+        "text": "Social media firms asked to toughen up age checks for under-13s",
+        "predicted": "fake"
+      },
+      {
+        "text": "U.S. at Fault in Strike on School in Iran, Preliminary Inquiry Says",
+        "predicted": "fake"
+      },
+      {
+        "text": "How Trump and His Advisers Miscalculated Iran\u2019s Response to War",
+        "predicted": "fake"
+      },
+      {
+        "text": "How Trump Is Using the Paxton-Cornyn Race to Squeeze the Senate Over the SAVE Act",
+        "predicted": "fake"
+      },
+      {
+        "text": "Republicans Concede They Need to Pivot on Immigration Before Midterms",
+        "predicted": "fake"
+      }
+    ],
+    "fake": [
+      {
+        "text": "NASA confirms the Moon is made of cheese after secret probe",
+        "predicted": "fake"
+      },
+      {
+        "text": "World leaders sign treaty to abolish gravity by 2030",
+        "predicted": "fake"
+      },
+      {
+        "text": "Scientists discover unicorn fossils in the Himalayas",
+        "predicted": "fake"
+      },
+      {
+        "text": "Doctors confirm eating only chocolate guarantees a 200-year lifespan",
+        "predicted": "fake"
+      },
+      {
+        "text": "Global finance ministers ban mathematics in stock trading",
+        "predicted": "real"
+      }
+    ]
+  }
+}
