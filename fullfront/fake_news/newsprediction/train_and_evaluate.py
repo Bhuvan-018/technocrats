@@ -33,6 +33,13 @@ LIVE_RSS_FEEDS = [
     "https://www.aljazeera.com/xml/rss/all.xml",
 ]
 
+try:
+    from news_db import fetch_articles, init_db, upsert_articles
+except Exception:  # pragma: no cover - safe fallback if module is missing
+    fetch_articles = None
+    init_db = None
+    upsert_articles = None
+
 
 def _as_text(value: object) -> str:
     if value is None:
@@ -105,6 +112,17 @@ def main() -> None:
         default=40,
         help="Max live RSS items to ingest per feed",
     )
+    parser.add_argument(
+        "--db-days",
+        type=int,
+        default=90,
+        help="How many days of live news to pull from the DB",
+    )
+    parser.add_argument(
+        "--use-db",
+        action="store_true",
+        help="Include live-news DB records in training data",
+    )
     args = parser.parse_args()
 
     print("Loading labeled fake/real datasets")
@@ -116,12 +134,41 @@ def main() -> None:
 
     print("Collecting live news from RSS feeds")
     live_real_df = _collect_live_news(args.live_news_per_feed)
+    db_added = 0
+    if upsert_articles is not None and not live_real_df.empty:
+        records = []
+        for _, row in live_real_df.iterrows():
+            records.append(
+                {
+                    "source": _as_text(row.get("source")),
+                    "title": _as_text(row.get("title")),
+                    "summary": _as_text(row.get("text")),
+                    "url": _as_text(row.get("url")),
+                    "published_at": "",
+                }
+            )
+        db_added = upsert_articles(records)
     if not live_real_df.empty:
         live_real_df.to_csv(LIVE_NEWS_DATASET_PATH, index=False)
         real_df = pd.concat([real_df, live_real_df], ignore_index=True)
         print(f"Added live real samples: {len(live_real_df)}")
     else:
         print("No live news rows collected; training with base dataset only")
+
+    if args.use_db and fetch_articles is not None:
+        try:
+            init_db()
+            db_rows = fetch_articles(days=args.db_days)
+        except Exception:
+            db_rows = []
+        if db_rows:
+            db_df = pd.DataFrame(db_rows)
+            db_df = db_df.rename(columns={"summary": "text"})
+            db_df["label"] = 1
+            real_df = pd.concat([real_df, db_df], ignore_index=True)
+            print(f"Added DB live samples: {len(db_df)} (inserted {db_added})")
+        else:
+            print("No DB live samples found; continuing without DB data")
 
     merged = pd.concat([fake_df, real_df], ignore_index=True)
     merged["combined_text"] = _build_text(merged)
@@ -178,6 +225,7 @@ def main() -> None:
         "dataset": "genesisqu/fake-real-news (Fake.csv + True.csv)",
         "live_news_dataset": str(LIVE_NEWS_DATASET_PATH.name),
         "live_real_samples_added": int(len(live_real_df)),
+        "db_live_samples_added": int(db_added),
         "train_samples": len(x_train),
         "test_samples": len(x_test),
         "accuracy": acc,

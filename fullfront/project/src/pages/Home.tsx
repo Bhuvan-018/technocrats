@@ -1,6 +1,21 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
-import { brokerageFetch, marketAPI } from '../services/api';
+const MOCK_API = 'http://127.0.0.1:9050';
+
+async function mockFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${MOCK_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || 'Request failed');
+  }
+  return response.json();
+}
 
 type DashboardSummary = {
   total_value: number;
@@ -73,11 +88,11 @@ export function Home() {
     try {
       setError(null);
       const results = await Promise.allSettled([
-        brokerageFetch('/api/trade/dashboard'),
-        marketAPI.getStatus(),
-        marketAPI.getIndices(),
-        marketAPI.getOilPrice(),
-        brokerageFetch('/api/broker/paytm/config'),
+        mockFetch('/api/trade/dashboard'),
+        mockFetch('/api/market-status'),
+        mockFetch('/api/indices'),
+        mockFetch('/api/oil-price'),
+        mockFetch('/api/broker/paytm/config'),
       ]);
 
       const [dashboardResult, marketStatusResult, indicesResult, oilPriceResult, brokerResult] = results;
@@ -116,7 +131,7 @@ export function Home() {
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 15000);
+    const interval = setInterval(loadData, 1000);
     return () => clearInterval(interval);
   }, []);
 

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import {
   AlertCircle,
   Flame,
@@ -23,10 +22,23 @@ type NewsArticle = {
   published_at: string;
 };
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase =
-  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const MOCK_NEWS_API = 'http://127.0.0.1:9060';
+
+async function mockFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${MOCK_NEWS_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = (data && (data.error || data.message)) || 'Request failed';
+    throw new Error(message);
+  }
+  return data;
+}
 
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -74,6 +86,12 @@ function formatTime(timestamp: string) {
   return `${diffDays}d ago`;
 }
 
+const impactSummary = (impact: Impact) => {
+  if (impact === 'positive') return 'Likely supportive for stocks';
+  if (impact === 'negative') return 'Likely risk-off for stocks';
+  return 'Likely neutral for markets';
+};
+
 export function News() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,36 +99,17 @@ export function News() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchNews = async (isRefresh = false) => {
-    if (!supabase) {
-      setArticles([]);
-      setError(
-        'News data source is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in fullfront/project/.env.'
-      );
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
     try {
       if (isRefresh) {
         setRefreshing(true);
       }
       setError(null);
 
-      const { data, error: queryError } = await supabase
-        .from('news_articles')
-        .select('*')
-        .order('published_at', { ascending: false })
-        .limit(120);
-
-      if (queryError) {
-        throw queryError;
-      }
-
-      setArticles((data || []).map(mapRow));
+      const data = await mockFetch('/api/news');
+      const rows = Array.isArray(data) ? data : data?.articles || [];
+      setArticles(rows.map(mapRow));
     } catch (err) {
-      console.error('Error fetching news:', err);
-      setError('Unable to load market news right now. Please verify Supabase table access.');
+      setError('Unable to load market news right now. Start the mock news API.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,6 +141,12 @@ export function News() {
     return <Minus className="w-4 h-4" />;
   };
 
+  const ImpactText = ({ impact }: { impact: Impact }) => (
+    <span className="text-xs font-semibold uppercase tracking-wide">
+      {impact === 'positive' ? 'Positive' : impact === 'negative' ? 'Negative' : 'Neutral'}
+    </span>
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
@@ -152,7 +157,7 @@ export function News() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Live Market News & Impact</h1>
-              <p className="text-sm text-gray-600 mt-0.5">Real-time financial news with impact tags</p>
+              <p className="text-sm text-gray-600 mt-0.5">Curated headlines with market impact signals</p>
             </div>
           </div>
 
@@ -207,6 +212,12 @@ export function News() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-gray-900">{article.headline}</p>
+                        <p className="text-sm text-gray-600 mt-1">{article.summary}</p>
+                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                          <span className="font-medium">{article.source}</span>
+                          <span>•</span>
+                          <span>{formatTime(article.published_at)}</span>
+                        </div>
                         {article.related_stocks.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {article.related_stocks.map((stock) => (
@@ -217,10 +228,12 @@ export function News() {
                           </div>
                         )}
                       </div>
-                      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border ${impactClass(article.impact)}`}>
+                      <div className={`inline-flex flex-col items-center gap-1 px-2 py-1 rounded-full border ${impactClass(article.impact)}`}>
                         <ImpactIcon impact={article.impact} />
+                        <ImpactText impact={article.impact} />
                       </div>
                     </div>
+                    <div className="mt-3 text-xs text-gray-600 italic">{impactSummary(article.impact)}</div>
                   </div>
                 ))}
               </div>
@@ -231,7 +244,7 @@ export function News() {
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-14 text-center">
               <Newspaper className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No news articles yet</h3>
-              <p className="text-gray-600">News will appear here once rows are available in the `news_articles` table.</p>
+              <p className="text-gray-600">Start the mock news API to load headlines.</p>
             </div>
           ) : (
             <section className="space-y-4">
@@ -239,14 +252,17 @@ export function News() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {news.map((article) => (
                   <article key={article.id} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 leading-tight">{article.headline}</h3>
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border ${impactClass(article.impact)}`}>
+                      <div className={`inline-flex flex-col items-center gap-1 px-2 py-1 rounded-full border ${impactClass(article.impact)}`}>
                         <ImpactIcon impact={article.impact} />
+                        <ImpactText impact={article.impact} />
                       </div>
                     </div>
 
                     <p className="text-sm text-gray-600 leading-relaxed mb-3">{article.summary}</p>
+
+                    <div className="text-xs text-gray-600 italic mb-3">{impactSummary(article.impact)}</div>
 
                     {article.related_stocks.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-3">

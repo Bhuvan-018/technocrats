@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowUpDown, DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
-import { portfolioAPI } from '../services/api';
+const MOCK_API = 'http://127.0.0.1:9050';
+
+async function mockFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${MOCK_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || 'Request failed');
+  }
+  return response.json();
+}
 import { Portfolio as PortfolioData, PortfolioHolding } from '../types';
 
 type SortField = 'symbol' | 'name' | 'quantity' | 'avgPrice' | 'currentPrice' | 'gainLoss';
@@ -17,7 +32,7 @@ export function Portfolio() {
     try {
       setLoading(true);
       setError(null);
-      const data = await portfolioAPI.get();
+      const data = await mockFetch('/api/trade/portfolio');
       setPortfolio(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load portfolio');

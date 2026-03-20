@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Filter, Search, X } from 'lucide-react';
-import { brokerageFetch } from '../services/api';
+const MOCK_API = 'http://127.0.0.1:9050';
+
+async function mockFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${MOCK_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || 'Request failed');
+  }
+  return response.json();
+}
 
 type TxnRow = {
   transactionId: string;
@@ -77,7 +92,7 @@ export function History() {
     setLoading(true);
     setError(null);
     try {
-      const res = await brokerageFetch('/api/trade/history');
+      const res = await mockFetch('/api/trade/history');
       const mapped: TxnRow[] = (res.transactions || []).map((row: any) => ({
         transactionId: row.transaction_id,
         orderId: row.order_id,
@@ -139,7 +154,7 @@ export function History() {
   const openOrderStatus = async (orderId: string) => {
     setStatusModal({ open: true, loading: true, data: null });
     try {
-      const row = await brokerageFetch(`/api/trade/order-status?id=${encodeURIComponent(orderId)}`);
+      const row = await mockFetch(`/api/trade/order-status?id=${encodeURIComponent(orderId)}`);
       const mapped: OrderStatus = {
         orderId: row.order_id,
         symbol: row.ticker,

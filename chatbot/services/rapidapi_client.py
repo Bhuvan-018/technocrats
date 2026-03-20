@@ -19,6 +19,14 @@ def load_config() -> RapidAPIConfig:
     return RapidAPIConfig(host=host, key=key)
 
 
+def load_chat_config() -> RapidAPIConfig:
+    host = os.environ.get("RAPIDAPI_CHAT_HOST", "").strip()
+    key = os.environ.get("RAPIDAPI_CHAT_KEY", "").strip()
+    if host:
+        return RapidAPIConfig(host=host, key=key or os.environ.get("RAPIDAPI_KEY", "").strip())
+    return load_config()
+
+
 def request_json(
     config: RapidAPIConfig,
     path: str,

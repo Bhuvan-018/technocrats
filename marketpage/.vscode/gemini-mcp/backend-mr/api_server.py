@@ -3,13 +3,15 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+from dotenv import load_dotenv
+
 from services.market_data_service import chart, companies, get_indices, market_status, oil_price
-from services.paytm_broker_service import (
-    build_connect_payload,
-    config_snapshot,
-    handle_callback,
-    logout_session,
-    passthrough,
+from services.angelone_broker_service import (
+    build_connect_payload as angel_build_connect_payload,
+    config_snapshot as angel_config_snapshot,
+    handle_callback as angel_handle_callback,
+    logout_session as angel_logout_session,
+    passthrough as angel_passthrough,
 )
 from db import DATABASE_URL, USE_POSTGRES, init_db
 from jwt_utils import decode
@@ -155,16 +157,32 @@ class BrokerageHandler(BaseHTTPRequestHandler):
             payload, status = list_watchlist(user_id)
             self._send_json(payload, status)
             return
+        if path == "/broker/angelone/config":
+            self._send_json(angel_config_snapshot())
+            return
+        if path == "/broker/angelone/connect":
+            user_id = self._get_user_id(query)
+            payload, status = angel_build_connect_payload(user_id=user_id)
+            self._send_json(payload, status)
+            return
+        if path == "/broker/angelone/callback":
+            payload, status = angel_handle_callback(query)
+            self._send_json(payload, status)
+            return
         if path == "/broker/paytm/config":
-            self._send_json(config_snapshot(self._request_base_url()))
+            payload = angel_config_snapshot()
+            payload["note"] = "paytm endpoints are deprecated; use /broker/angelone/*"
+            self._send_json(payload)
             return
         if path == "/broker/paytm/connect":
             user_id = self._get_user_id(query)
-            payload, status = build_connect_payload(user_id=user_id, request_base_url=self._request_base_url())
+            payload, status = angel_build_connect_payload(user_id=user_id)
+            payload["note"] = "paytm endpoints are deprecated; use /broker/angelone/*"
             self._send_json(payload, status)
             return
         if path == "/broker/paytm/callback":
-            payload, status = handle_callback(query, request_base_url=self._request_base_url())
+            payload, status = angel_handle_callback(query)
+            payload["note"] = "paytm endpoints are deprecated; use /broker/angelone/*"
             self._send_json(payload, status)
             return
 
@@ -232,11 +250,13 @@ class BrokerageHandler(BaseHTTPRequestHandler):
             payload, status = remove_watchlist(user_id, symbol)
             self._send_json(payload, status)
             return
+        if path == "/broker/angelone/request":
+            payload, status = angel_passthrough(body)
+            self._send_json(payload, status)
+            return
         if path == "/broker/paytm/request":
-            auth = self.headers.get("Authorization", "")
-            if auth.startswith("Bearer ") and not body.get("jwt_token"):
-                body["jwt_token"] = auth.split(" ", 1)[1].strip()
-            payload, status = passthrough(body)
+            payload, status = angel_passthrough(body)
+            payload["note"] = "paytm endpoints are deprecated; use /broker/angelone/*"
             self._send_json(payload, status)
             return
 
@@ -244,10 +264,13 @@ class BrokerageHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         path, _ = self._parse_path()
+        if path == "/broker/angelone/logout":
+            payload, status = angel_logout_session()
+            self._send_json(payload, status)
+            return
         if path == "/broker/paytm/logout":
-            auth = self.headers.get("Authorization", "")
-            token = auth.split(" ", 1)[1].strip() if auth.startswith("Bearer ") else None
-            payload, status = logout_session(jwt_token=token)
+            payload, status = angel_logout_session()
+            payload["note"] = "paytm endpoints are deprecated; use /broker/angelone/*"
             self._send_json(payload, status)
             return
 
@@ -278,6 +301,7 @@ class BrokerageHandler(BaseHTTPRequestHandler):
 
 
 def run(host: str = "127.0.0.1", port: int = 9000) -> None:
+    load_dotenv()
     init_db()
     server = ThreadingHTTPServer((host, port), BrokerageHandler)
     print(f"Brokerage backend running on http://{host}:{port}")

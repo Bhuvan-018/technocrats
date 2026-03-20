@@ -1,7 +1,7 @@
 import os
 from typing import Tuple
 
-from services.paytm_broker_service import place_order as paytm_place_order
+from services.angelone_broker_service import place_order as angelone_place_order
 
 
 def place_order(payload: dict) -> Tuple[str, str | None, str | None]:
@@ -23,7 +23,7 @@ def place_order(payload: dict) -> Tuple[str, str | None, str | None]:
             return "ERROR", None, "missing Upstox credentials"
         return "PENDING", f"UPX-{payload.get('order_id')}", None
 
-    if provider in ("paytm", "paytm_money", "paytmmoney"):
-        return paytm_place_order(payload)
+    if provider in ("angelone", "angel", "paytm", "paytm_money", "paytmmoney"):
+        return angelone_place_order(payload)
 
     return "ERROR", None, "unknown broker provider"

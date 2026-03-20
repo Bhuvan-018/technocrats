@@ -66,24 +66,20 @@ Notes:
 - No sample data is seeded.
 - `yfinance` is optional; if unavailable or network fails, market data endpoints return empty data.
 - Broker and payment providers are gated by env vars:
-  - `BROKER_PROVIDER` = `paper` (default), `zerodha`, `upstox`
+  - `BROKER_PROVIDER` = `paper` (default), `angelone`, `zerodha`, `upstox`
   - `PAYMENT_PROVIDER` = `local` (default), `razorpay`, `paytm`
 - Razorpay keys: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`
 
-Paytm Money broker setup:
- - `PAYTM_MONEY_API_BASE_URL=https://developer.paytmmoney.com`
+Angel One (SmartAPI) setup:
+- `ANGELONE_API_KEY`
+- `ANGELONE_CLIENT_CODE`
+- `ANGELONE_PASSWORD`
+- `ANGELONE_TOTP_SECRET` (or one-time `ANGELONE_TOTP`)
+- Optional cached tokens: `ANGELONE_ACCESS_TOKEN`, `ANGELONE_REFRESH_TOKEN`, `ANGELONE_FEED_TOKEN`
 
-Paytm broker endpoints:
- - `DELETE /api/broker/paytm/logout` (maps to Paytm docs: `/accounts/v1/logout`)
- - `POST /api/broker/paytm/request` (generic wrapper for Paytm docs endpoints)
-
- Example generic request body:
- ```json
- {
-   "method": "GET",
-   "path": "/orders/v1/order-book",
-   "query": {},
-   "body": {},
-   "jwt_token": "optional-if-not-in-env-or-bearer"
- }
- ```
+Angel One broker endpoints:
+- `GET /api/broker/angelone/config`
+- `GET /api/broker/angelone/connect`
+- `GET /api/broker/angelone/callback` (compatibility only)
+- `POST /api/broker/angelone/request` (LTP passthrough)
+- `DELETE /api/broker/angelone/logout`

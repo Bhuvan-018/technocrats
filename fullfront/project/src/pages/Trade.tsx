@@ -8,7 +8,22 @@ import {
   TrendingUp,
   XCircle,
 } from 'lucide-react';
-import { brokerageFetch } from '../services/api';
+const MOCK_API = 'http://127.0.0.1:9050';
+
+async function mockFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${MOCK_API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || 'Request failed');
+  }
+  return response.json();
+}
 
 type BrokerConfig = {
   configured: boolean;
@@ -60,7 +75,7 @@ export function Trade() {
     try {
       setConfigLoading(true);
       setConfigError(null);
-      const config = await brokerageFetch('/api/broker/paytm/config');
+      const config = await mockFetch('/api/broker/paytm/config');
       setBrokerConfig(config);
     } catch (e) {
       setConfigError(e instanceof Error ? e.message : 'Failed to load broker configuration');
@@ -76,7 +91,7 @@ export function Trade() {
 
   const handleConnect = async () => {
     try {
-      const res = await brokerageFetch('/api/broker/paytm/connect');
+      const res = await mockFetch('/api/broker/paytm/connect');
       if (res?.auth_url) {
         window.open(res.auth_url, '_blank', 'noopener,noreferrer');
       }
@@ -88,7 +103,7 @@ export function Trade() {
 
   const handleLogout = async () => {
     try {
-      await brokerageFetch('/api/broker/paytm/logout', { method: 'DELETE' });
+      await mockFetch('/api/broker/paytm/logout', { method: 'DELETE' });
       await loadBrokerConfig();
     } catch (e) {
       setConfigError(e instanceof Error ? e.message : 'Failed to logout from broker');
@@ -125,7 +140,7 @@ export function Trade() {
         type: side,
       };
 
-      const res = await brokerageFetch('/api/trade/place', {
+      const res = await mockFetch('/api/trade/place', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -155,7 +170,7 @@ export function Trade() {
       setStatusLoading(true);
       setStatusError(null);
       setOrderStatus(null);
-      const raw = await brokerageFetch(`/api/trade/order-status?id=${encodeURIComponent(orderIdLookup.trim())}`);
+      const raw = await mockFetch(`/api/trade/order-status?id=${encodeURIComponent(orderIdLookup.trim())}`);
       setOrderStatus({
         orderId: raw.order_id,
         symbol: raw.ticker,

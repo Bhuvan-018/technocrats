@@ -1,9 +1,20 @@
 import argparse
 import json
+import os
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
-from services.rapidapi_client import load_config, request_json
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency
+    load_dotenv = None
+
+from services.openrouter_client import load_openrouter_config, request_openrouter
+from services.rapidapi_client import load_chat_config, load_config, request_json
+
+if load_dotenv is not None:
+    load_dotenv(Path(__file__).resolve().parent / ".env")
 
 
 class StockyHandler(BaseHTTPRequestHandler):
@@ -55,29 +66,70 @@ class StockyHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path.rstrip("/") or "/"
         body = self._read_json()
         config = load_config()
+        openrouter_config = load_openrouter_config()
 
         if path == "/chat":
             try:
+                chat_config = load_chat_config()
                 messages = body.get("messages")
                 if not isinstance(messages, list) or not messages:
                     question = str(body.get("question") or body.get("prompt") or "hello").strip()
                     messages = [{"role": "user", "content": question or "hello"}]
 
-                payload, status = request_json(
-                    config,
-                    "/conversationgpt4-2",
-                    method="POST",
-                    payload={
-                        "messages": messages,
-                        "system_prompt": str(body.get("system_prompt") or ""),
-                        "temperature": float(body.get("temperature") or 0.9),
-                        "top_k": int(body.get("top_k") or 5),
-                        "top_p": float(body.get("top_p") or 0.9),
-                        "max_tokens": int(body.get("max_tokens") or 256),
-                        "web_access": bool(body.get("web_access") if body.get("web_access") is not None else False),
-                    },
-                    timeout=90,
-                )
+                stock = str(body.get("stock") or body.get("symbol") or "").upper()
+                period = str(body.get("period") or "1mo")
+                conversation_id = str(body.get("conversation_id") or "")
+
+                if "yahoo-finance160" in chat_config.host:
+                    payload, status = request_json(
+                        chat_config,
+                        "/finbot",
+                        method="POST",
+                        payload={
+                            "messages": messages,
+                            "stock": stock or "TSLA",
+                            "conversation_id": conversation_id,
+                            "period": period,
+                        },
+                        timeout=90,
+                    )
+                elif openrouter_config is not None:
+                    payload, status = request_openrouter(
+                        openrouter_config,
+                        messages=messages,
+                        temperature=float(body.get("temperature") or 0.9),
+                        max_tokens=int(body.get("max_tokens") or 256),
+                        timeout=90,
+                    )
+                elif "cheapest-gpt-4-turbo-gpt-4-vision-chatgpt-openai-ai-api" in chat_config.host:
+                    payload, status = request_json(
+                        chat_config,
+                        "/v1/chat/completions",
+                        method="POST",
+                        payload={
+                            "messages": messages,
+                            "model": str(body.get("model") or "gpt-4o"),
+                            "max_tokens": int(body.get("max_tokens") or 256),
+                            "temperature": float(body.get("temperature") or 0.9),
+                        },
+                        timeout=90,
+                    )
+                else:
+                    payload, status = request_json(
+                        chat_config,
+                        "/conversationgpt4-2",
+                        method="POST",
+                        payload={
+                            "messages": messages,
+                            "system_prompt": str(body.get("system_prompt") or ""),
+                            "temperature": float(body.get("temperature") or 0.9),
+                            "top_k": int(body.get("top_k") or 5),
+                            "top_p": float(body.get("top_p") or 0.9),
+                            "max_tokens": int(body.get("max_tokens") or 256),
+                            "web_access": bool(body.get("web_access") if body.get("web_access") is not None else False),
+                        },
+                        timeout=90,
+                    )
 
                 answer = (
                     payload.get("result")
@@ -86,6 +138,12 @@ class StockyHandler(BaseHTTPRequestHandler):
                     or payload.get("message")
                     or payload.get("content")
                 )
+
+                if not answer and isinstance(payload, dict):
+                    choices = payload.get("choices") or []
+                    if choices:
+                        msg = choices[0].get("message") or {}
+                        answer = msg.get("content")
 
                 if isinstance(answer, dict):
                     answer = answer.get("content") or answer.get("text") or json.dumps(answer)

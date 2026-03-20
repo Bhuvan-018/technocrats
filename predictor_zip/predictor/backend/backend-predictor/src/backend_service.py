@@ -20,8 +20,8 @@ class CompatFunctional(keras.Model):
             cfg = dict(config)
             cfg.pop("build_config", None)
             cfg.pop("compile_config", None)
-            return keras.Model.from_config(cfg)
-        return keras.Model.from_config(config)
+            return keras.Model.from_config(cfg, custom_objects=CUSTOM_OBJECTS)
+        return keras.Model.from_config(config, custom_objects=CUSTOM_OBJECTS)
 
 
 class CompatMultiHeadAttention(keras.layers.MultiHeadAttention):
@@ -38,6 +38,14 @@ class CompatMultiHeadAttention(keras.layers.MultiHeadAttention):
             key_shape = value_shape
         return super().build(query_shape, value_shape=value_shape, key_shape=key_shape)
 
+    def call(self, query, value=None, key=None, **kwargs):
+        # Some legacy configs deserialize `value` as a list reference instead of a tensor.
+        if isinstance(value, (list, tuple)) or isinstance(value, str):
+            value = query
+        if isinstance(key, (list, tuple)) or isinstance(key, str):
+            key = value
+        return super().call(query, value, key=key, **kwargs)
+
 
 def _patch_mha_init():
     # Patch both keras and tf.keras in case the loader uses either path.
@@ -46,6 +54,8 @@ def _patch_mha_init():
             continue
         original_init = mha_cls.__init__
         original_build = mha_cls.build
+        original_call = mha_cls.call
+        original_spec = getattr(mha_cls, "compute_output_spec", None)
 
         def _init(self, *args, **kwargs):
             kwargs.pop("query_shape", None)
@@ -71,6 +81,32 @@ def _patch_mha_init():
 
         _build.__name__ = original_build.__name__
         mha_cls.build = _build
+
+        def _call(self, query, value=None, key=None, **kwargs):
+            if isinstance(query, (list, tuple)) and value is None and len(query) >= 2:
+                query, value = query[0], query[1]
+            if isinstance(value, (list, tuple)) or isinstance(value, str):
+                value = query
+            if isinstance(key, (list, tuple)) or isinstance(key, str):
+                key = value
+            return original_call(self, query, value, key=key, **kwargs)
+
+        _call.__name__ = original_call.__name__
+        mha_cls.call = _call
+
+        if original_spec is not None:
+            def _spec(self, query, value=None, key=None, **kwargs):
+                if isinstance(query, (list, tuple)) and value is None and len(query) >= 2:
+                    query, value = query[0], query[1]
+                if isinstance(value, (list, tuple)) or isinstance(value, str):
+                    value = query
+                if isinstance(key, (list, tuple)) or isinstance(key, str):
+                    key = value
+                return original_spec(self, query, value, key=key, **kwargs)
+
+            _spec.__name__ = original_spec.__name__
+            mha_cls.compute_output_spec = _spec
+
         mha_cls._patched_for_compat = True
 
 def _ensure_keras_compat() -> None:
@@ -442,7 +478,14 @@ def predict_payload(ticker: str, allow_simulation: bool = True) -> dict:
     if not market["is_open"] and not allow_simulation:
         raise BackendServiceError("Market is closed and simulation is not allowed")
 
-    model, scalers, _, model_path, _ = _model_and_scalers_for_ticker(t)
+    model = None
+    scalers = None
+    model_path = None
+    fallback_warning = None
+    try:
+        model, scalers, _, model_path, _ = _model_and_scalers_for_ticker(t)
+    except Exception as exc:
+        fallback_warning = f"Model load failed; using heuristic fallback. Error: {exc}"
     df_5m = _fetch_live_5m_df(t, period="10d", interval="5m")
     df_10m = resample_data(df_5m, "10min")
     if df_10m.empty:
@@ -454,19 +497,42 @@ def predict_payload(ticker: str, allow_simulation: bool = True) -> dict:
             f"Not enough processed candles for {t}. Need at least {GROUP_LOOKBACK_WINDOW}."
         )
 
-    feature_scaler = scalers["feature"]
-    feature_cols = (
-        list(feature_scaler.feature_names_in_)
-        if hasattr(feature_scaler, "feature_names_in_")
-        else df_features.columns.tolist()
-    )
-    last_seq = df_features.iloc[-GROUP_LOOKBACK_WINDOW:][feature_cols]
-    input_seq = feature_scaler.transform(last_seq).reshape(1, GROUP_LOOKBACK_WINDOW, -1)
+    def _fallback_predictions() -> Tuple[list, list, list]:
+        last = df_10m.iloc[-1]
+        prev = df_10m.iloc[-2] if len(df_10m) > 1 else last
+        base_close = float(last["Close"])
+        delta = float(last["Close"] - prev["Close"])
 
-    preds = model.predict(input_seq, verbose=0)
-    p_10m = scalers["target_10m"].inverse_transform(preds[0])[0]
-    p_30m = scalers["target_30m"].inverse_transform(preds[1])[0]
-    p_1h = scalers["target_1h"].inverse_transform(preds[2])[0]
+        def _fallback_row(mult: float) -> list:
+            close_val = base_close + delta * mult
+            open_val = base_close
+            high_val = max(open_val, close_val) * 1.001
+            low_val = min(open_val, close_val) * 0.999
+            volume_val = float(last["Volume"])
+            return [open_val, high_val, low_val, close_val, volume_val]
+
+        return _fallback_row(0.5), _fallback_row(1.0), _fallback_row(1.5)
+
+    if model is None or scalers is None:
+        p_10m, p_30m, p_1h = _fallback_predictions()
+    else:
+        feature_scaler = scalers["feature"]
+        feature_cols = (
+            list(feature_scaler.feature_names_in_)
+            if hasattr(feature_scaler, "feature_names_in_")
+            else df_features.columns.tolist()
+        )
+        last_seq = df_features.iloc[-GROUP_LOOKBACK_WINDOW:][feature_cols]
+        input_seq = feature_scaler.transform(last_seq).reshape(1, GROUP_LOOKBACK_WINDOW, -1)
+
+        try:
+            preds = model.predict(input_seq, verbose=0)
+            p_10m = scalers["target_10m"].inverse_transform(preds[0])[0]
+            p_30m = scalers["target_30m"].inverse_transform(preds[1])[0]
+            p_1h = scalers["target_1h"].inverse_transform(preds[2])[0]
+        except Exception as exc:
+            fallback_warning = f"Model prediction failed; using heuristic fallback. Error: {exc}"
+            p_10m, p_30m, p_1h = _fallback_predictions()
 
     bias_corrections = _bias_corrections_for_ticker(t)
     p_10m = _apply_bias_correction(p_10m, bias_corrections["10m"])
@@ -475,7 +541,10 @@ def predict_payload(ticker: str, allow_simulation: bool = True) -> dict:
 
     current_price = float(df_10m["Close"].iloc[-1])
     last_candle_time = pd.Timestamp(df_10m.index[-1]).tz_convert(IST).isoformat() if getattr(df_10m.index, "tz", None) else pd.Timestamp(df_10m.index[-1]).tz_localize(IST).isoformat()
-    mae_rupees = _validation_mae_rupees(model_path=model_path, scalers=scalers)
+    if model_path and scalers:
+        mae_rupees = _validation_mae_rupees(model_path=model_path, scalers=scalers)
+    else:
+        mae_rupees = {"10m": None, "30m": None, "1h": None}
 
     def horizon_payload(row, mae):
         close_value = float(row[3])
@@ -491,7 +560,7 @@ def predict_payload(ticker: str, allow_simulation: bool = True) -> dict:
         }
 
     company_name = next((item["name"] for item in list_companies() if item["ticker"] == t), t)
-    return {
+    response = {
         "ticker": t,
         "name": company_name,
         "market_status": {
@@ -511,6 +580,10 @@ def predict_payload(ticker: str, allow_simulation: bool = True) -> dict:
             "by_horizon": bias_corrections,
         },
     }
+    if fallback_warning:
+        response["warning"] = fallback_warning
+        response["prediction_mode"] = "fallback"
+    return response
 
 
 def trust_metrics_payload(ticker: str) -> dict:
